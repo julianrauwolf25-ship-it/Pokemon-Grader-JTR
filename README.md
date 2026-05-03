@@ -1,1 +1,0 @@
-# Pokemon-Grader-JTR
