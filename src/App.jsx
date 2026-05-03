@@ -113,14 +113,19 @@ export default function PokemonGrader() {
     content.push({ type: "text", text: PROMPT });
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1500, messages: [{ role: "user", content }] }),
+        body: JSON.stringify({
+          imageData: frontB64.data,
+          mediaType: frontB64.mediaType,
+          backImageData: backB64?.data || null,
+          backMediaType: backB64?.mediaType || null,
+        }),
       });
       const data = await res.json();
-      const text = data.content?.find(b => b.type === "text")?.text || "";
-      setResult(JSON.parse(text.replace(/```json|```/g, "").trim()));
+      if (data.error) throw new Error(data.error);
+      setResult(data);
     } catch { setResult({ error: true }); }
     setLoading(false);
   };
