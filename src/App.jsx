@@ -82,19 +82,30 @@ export default function PokemonGrader() {
   const handleFile = useCallback((file, side) => {
     if (!file || !file.type.startsWith("image/")) return;
     setResult(null);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target.result;
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
       const b64data = dataUrl.split(",")[1];
+      URL.revokeObjectURL(objectUrl);
       if (side === "front") {
         setFrontImg(dataUrl);
-        setFrontB64({ data: b64data, mediaType: file.type });
+        setFrontB64({ data: b64data, mediaType: "image/jpeg" });
       } else {
         setBackImg(dataUrl);
-        setBackB64({ data: b64data, mediaType: file.type });
+        setBackB64({ data: b64data, mediaType: "image/jpeg" });
       }
     };
-    reader.readAsDataURL(file);
+    img.src = objectUrl;
   }, []);
 
   const analyzeCard = async () => {
