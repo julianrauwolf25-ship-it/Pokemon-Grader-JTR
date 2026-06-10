@@ -18,7 +18,6 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network first for API calls
   if (event.request.url.includes('/api/')) {
     return;
   }

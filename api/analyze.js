@@ -18,10 +18,24 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing imageData or mediaType" });
   }
 
-  const PROMPT = `Du bist ein Experte für Pokémon-Karten-Grading. Analysiere diese Karte.
+  const PROMPT = `Du bist ein Experte für Pokémon-Karten-Grading und kennst CardMarket sowie PriceCharting sehr gut. Analysiere diese Karte.
+
+Für die Links gilt:
+- CardMarket Singles-URL Format: https://www.cardmarket.com/de/Pokemon/Products/Singles/{Set-URL-Slug}/{Karten-URL-Slug}
+  Beispiele:
+  - Glurak aus Base Set: https://www.cardmarket.com/de/Pokemon/Products/Singles/Base-Set/Glurak
+  - Pikachu VMAX aus Sword Shield: https://www.cardmarket.com/de/Pokemon/Products/Singles/Sword-Shield-Promo-Cards/Pikachu-VMAX
+  - Zoroark-ex aus Scarlet Violet: https://www.cardmarket.com/de/Pokemon/Products/Singles/Scarlet-Violet/Zoroark-ex
+  Regel: Leerzeichen → Bindestrich, Sonderzeichen weglassen, deutsche Kartennamen verwenden falls deutsche Karte
+- PriceCharting URL Format: https://www.pricecharting.com/game/pokemon-{set-slug}/{kartenname-slug}
+  Beispiele:
+  - Charizard Base Set: https://www.pricecharting.com/game/pokemon-base-set/charizard-4
+  - Pikachu VMAX: https://www.pricecharting.com/game/pokemon-swsh-promo/pikachu-vmax-44
 
 Antworte NUR mit einem JSON-Objekt (kein Text, keine Backticks, kein Markdown):
-{"card_name":"<Name>","card_name_en":"<EnglName>","set":"<Set>","set_code":"<Kürzel>","card_number":"<Nr>","language":"<German|English|Japanese>","rarity":"<Rarität>","psa_grade":<1-10>,"cardmarket_grade":"<Mint|Near Mint|Excellent|Good|Light Played|Played|Poor>","centering":{"front_left_right":"<z.B. 50/50>","front_top_bottom":"<z.B. 50/50>","back_left_right":"<>","back_top_bottom":"<>","assessment":"<Perfekt|Gut|Akzeptabel|Schlecht>","details":"<2 Sätze>"},"whitening":{"front_severity":"<Keine|Minimal|Leicht|Mittel|Stark>","back_severity":"<Keine|Minimal|Leicht|Mittel|Stark>","locations":"<wo>","details":"<2 Sätze>"},"front":{"corners":"<2 Sätze>","edges":"<2 Sätze>","surface":"<2 Sätze>","overall":"<>"},"back":{"corners":"<>","edges":"<>","surface":"<>","overall":"<>"},"investment_potential":"<Hoch|Mittel|Gering>","estimated_value_raw":"<z.B. 5-15 EUR>","estimated_value_graded":"<PSA 10 Wert>","submit_to_psa":<true|false>,"key_flaws":["<>","<>"],"tips":"<>"}`;
+{"card_name":"<Name>","card_name_en":"<EnglName>","set":"<Set>","set_code":"<Kürzel>","card_number":"<Nr z.B. 4/102>","language":"<German|English|Japanese>","rarity":"<Rarität>","psa_grade":<1-10>,"cardmarket_grade":"<Mint|Near Mint|Excellent|Good|Light Played|Played|Poor>","cardmarket_url":"<vollständige CardMarket URL direkt zur Karte>","pricecharting_url":"<vollständige PriceCharting URL direkt zur Karte>","pricecharting_psa_url":"<PriceCharting URL für PSA Slabs dieser Karte>","centering":{"front_left_right":"<z.B. 55/45>","front_top_bottom":"<z.B. 50/50>","back_left_right":"<>","back_top_bottom":"<>","assessment":"<Perfekt|Gut|Akzeptabel|Schlecht>","details":"<2 Sätze>"},"whitening":{"front_severity":"<Keine|Minimal|Leicht|Mittel|Stark>","back_severity":"<Keine|Minimal|Leicht|Mittel|Stark>","locations":"<wo>","details":"<2 Sätze>"},"front":{"corners":"<2 Sätze>","edges":"<2 Sätze>","surface":"<2 Sätze>","overall":"<>"},"back":{"corners":"<>","edges":"<>","surface":"<>","overall":"<>"},"investment_potential":"<Hoch|Mittel|Gering>","estimated_value_raw":"<z.B. 5-15 EUR>","estimated_value_graded":"<PSA 10 Wert>","submit_to_psa":<true|false>,"key_flaws":["<>","<>"],"tips":"<>"}
+
+Wenn keine Pokémon-Karte erkannt: psa_grade=0.`;
 
   const content = [];
   content.push({ type: "text", text: backImageData ? "Vorderseite:" : "Vorderseite (keine Rückseite vorhanden):" });

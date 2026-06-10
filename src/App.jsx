@@ -84,7 +84,7 @@ function AuthScreen({ onAuth, theme }) {
 }
 
 // ── PORTFOLIO ──────────────────────────────────────────────────────────────
-function PortfolioScreen({ user, theme }) {
+function PortfolioScreen({ user, theme, isDeveloper }) {
   const T = theme === "light" ? LIGHT : DARK;
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -99,6 +99,7 @@ function PortfolioScreen({ user, theme }) {
   const [filterGrade, setFilterGrade] = useState("all");
   const [filterCM, setFilterCM] = useState("all");
   const [exporting, setExporting] = useState(false);
+  const [exportingCorr, setExportingCorr] = useState(false);
 
   useEffect(() => { loadCards(); }, []);
 
@@ -155,6 +156,26 @@ function PortfolioScreen({ user, theme }) {
     setExporting(false);
   };
 
+  const exportCorrectionsCSV = async () => {
+    setExportingCorr(true);
+    const { data, error } = await supabase.from("corrections").select("*").order("created_at", { ascending: false });
+    if (error) { setExportingCorr(false); return; }
+    const headers = ["Karte", "Set", "Nr.", "Sprache", "KI PSA", "KI CardMarket", "Korrigiert PSA", "Korrigiert CardMarket", "Grund", "Mängel", "Datum"];
+    const rows = (data || []).map(c => [
+      c.card_name || "", c.set_name || "", c.card_number || "", c.language || "",
+      c.ai_psa_grade ?? "", c.ai_cardmarket_grade || "",
+      c.corrected_psa_grade ?? "", c.corrected_cardmarket_grade || "",
+      c.correction_reason || "", (c.key_issues || []).join("; "),
+      new Date(c.created_at).toLocaleDateString("de-DE")
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "pokemon-korrekturen.csv"; a.click();
+    URL.revokeObjectURL(url);
+    setExportingCorr(false);
+  };
+
   const inp = { background: T.bg2, border: `1px solid ${T.border}`, borderRadius: "3px", color: T.text, fontFamily: "'DM Mono', monospace", fontSize: "11px", padding: "8px 10px", outline: "none", width: "100%" };
   const selStyle = { background: T.bg2, border: `1px solid ${T.border}`, borderRadius: "3px", color: T.text, fontFamily: "'DM Mono', monospace", fontSize: "9px", padding: "8px 10px", outline: "none", cursor: "pointer" };
 
@@ -178,11 +199,16 @@ function PortfolioScreen({ user, theme }) {
       )}
 
       {/* Search + Filter + Sort + Export */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", marginBottom: "12px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isDeveloper ? "1fr auto auto" : "1fr auto", gap: "8px", marginBottom: "12px" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Karte suchen..." style={{ ...inp, fontSize: "12px", padding: "10px 14px" }} />
         <button onClick={exportCSV} disabled={exporting || cards.length === 0} style={{ background: T.accent, border: "none", borderRadius: "3px", color: "#0a0a0f", fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "2px", padding: "10px 14px", cursor: cards.length === 0 ? "not-allowed" : "pointer", opacity: cards.length === 0 ? 0.4 : 1 }}>
           📊 CSV
         </button>
+        {isDeveloper && (
+          <button onClick={exportCorrectionsCSV} disabled={exportingCorr} style={{ background: "transparent", border: `1px solid ${T.accent}66`, borderRadius: "3px", color: T.accent, fontFamily: "'DM Mono', monospace", fontSize: "8px", letterSpacing: "2px", padding: "10px 14px", cursor: exportingCorr ? "not-allowed" : "pointer" }}>
+            {exportingCorr ? "..." : "🛠 KORREKTUREN"}
+          </button>
+        )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "20px" }}>
@@ -325,6 +351,70 @@ function SaveModal({ result, frontImg, user, onClose, onSaved, theme }) {
   );
 }
 
+// ── DEVELOPER-KORREKTUR ────────────────────────────────────────────────────
+function CorrectionPanel({ result, frontImg, user, theme }) {
+  const T = theme === "light" ? LIGHT : DARK;
+  const aiPsa = result.psa_grade ? Math.min(10, Math.max(1, Math.round(result.psa_grade))) : 5;
+  const [psa, setPsa] = useState(aiPsa);
+  const [cm, setCm] = useState(CM_GRADES.includes(result.cardmarket_grade) ? result.cardmarket_grade : "Near Mint");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  const doSave = async () => {
+    setSaving(true); setError("");
+    const { error: err } = await supabase.from("corrections").insert({
+      developer_id: user.id,
+      card_name: result.card_name, set_name: result.set, card_number: result.card_number,
+      language: result.language, image_data: frontImg,
+      ai_psa_grade: result.psa_grade, ai_cardmarket_grade: result.cardmarket_grade,
+      corrected_psa_grade: psa, corrected_cardmarket_grade: cm,
+      correction_reason: reason || null,
+      key_issues: (result.key_flaws || []).filter(Boolean),
+    });
+    if (err) setError(err.message); else setSaved(true);
+    setSaving(false);
+  };
+
+  const inp = { width: "100%", background: T.bg2, border: `1px solid ${T.border}`, borderRadius: "3px", color: T.text, fontFamily: "'DM Mono', monospace", fontSize: "11px", padding: "10px", outline: "none" };
+
+  return (
+    <div style={{ marginTop: "24px", border: `1px solid ${T.accent}44`, borderRadius: "4px", padding: "20px", background: T.card }}>
+      <div style={{ fontSize: "8px", letterSpacing: "4px", color: T.accent, marginBottom: "4px" }}>DEVELOPER · KORREKTUR</div>
+      <div style={{ fontSize: "9px", color: T.sub, marginBottom: "16px" }}>KI-Bewertung: PSA {result.psa_grade} · {result.cardmarket_grade || "—"}</div>
+      {saved ? (
+        <div style={{ textAlign: "center", padding: "12px", border: "1px solid #90EE9044", borderRadius: "3px", background: "#90EE9011", color: "#90EE90", fontSize: "9px", letterSpacing: "3px" }}>✓ KORREKTUR GESPEICHERT</div>
+      ) : (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+            <div>
+              <div style={{ fontSize: "7px", letterSpacing: "2px", color: T.sub, marginBottom: "6px" }}>KORRIGIERTE PSA-NOTE</div>
+              <select value={psa} onChange={e => setPsa(parseInt(e.target.value))} style={{ ...inp, cursor: "pointer" }}>
+                {[10,9,8,7,6,5,4,3,2,1].map(g => <option key={g} value={g}>PSA {g} — {PSA_GRADES[g].label}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: "7px", letterSpacing: "2px", color: T.sub, marginBottom: "6px" }}>KORRIGIERTER CM-ZUSTAND</div>
+              <select value={cm} onChange={e => setCm(e.target.value)} style={{ ...inp, cursor: "pointer" }}>
+                {CM_GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ marginBottom: "16px" }}>
+            <div style={{ fontSize: "7px", letterSpacing: "2px", color: T.sub, marginBottom: "6px" }}>GRUND DER KORREKTUR</div>
+            <input value={reason} onChange={e => setReason(e.target.value)} placeholder="z.B. Rückseite gefaltet → max PSA 2" style={inp} />
+          </div>
+          {error && <div style={{ fontSize: "10px", color: "#FF6B6B", marginBottom: "12px" }}>{error}</div>}
+          <button onClick={doSave} disabled={saving} style={{ width: "100%", background: saving ? T.border : T.accent, border: "none", borderRadius: "3px", color: saving ? T.sub : "#0a0a0f", fontFamily: "'DM Mono', monospace", fontWeight: 500, fontSize: "9px", letterSpacing: "4px", padding: "13px", cursor: saving ? "not-allowed" : "pointer" }}>
+            {saving ? "..." : "KORREKTUR SPEICHERN"}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── MAIN ───────────────────────────────────────────────────────────────────
 export default function PokemonGrader() {
   const [user, setUser] = useState(null);
@@ -332,6 +422,7 @@ export default function PokemonGrader() {
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
   const [activeTab, setActiveTab] = useState("grader");
   const [portfolioCount, setPortfolioCount] = useState(0);
+  const [isDeveloper, setIsDeveloper] = useState(false);
   const [frontImg, setFrontImg] = useState(null);
   const [backImg, setBackImg] = useState(null);
   const [frontB64, setFrontB64] = useState(null);
@@ -355,6 +446,13 @@ export default function PokemonGrader() {
   useEffect(() => {
     if (user) loadPortfolioCount();
   }, [user, activeTab]);
+
+  useEffect(() => {
+    // Defensiv: solange die profiles-Tabelle (02_developer_corrections_setup.sql) nicht existiert, bleibt isDeveloper false
+    if (!user) { setIsDeveloper(false); return; }
+    supabase.from("profiles").select("is_developer").eq("id", user.id).single()
+      .then(({ data, error }) => setIsDeveloper(!error && !!data?.is_developer));
+  }, [user]);
 
   const loadPortfolioCount = async () => {
     const { count } = await supabase.from("portfolio").select("*", { count: "exact", head: true });
@@ -462,7 +560,7 @@ export default function PokemonGrader() {
       </div>
 
       <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "24px 16px" }}>
-        {activeTab === "portfolio" && <PortfolioScreen user={user} theme={theme} />}
+        {activeTab === "portfolio" && <PortfolioScreen user={user} theme={theme} isDeveloper={isDeveloper} />}
 
         {activeTab === "grader" && (
           <>
@@ -594,9 +692,9 @@ export default function PokemonGrader() {
                     const set = result.set || ""; const cardNum = result.card_number || "";
                     const lang = result.language || "";
                     const cmLang = lang === "German" ? "de" : lang === "French" ? "fr" : lang === "Italian" ? "it" : lang === "Spanish" ? "es" : "en";
-                    const cmUrl = `https://www.cardmarket.com/${cmLang}/Pokemon/Products/Search?searchString=${encodeURIComponent([result.card_name, result.set_code].filter(Boolean).join(" "))}`;
-                    const pcRawUrl = `https://www.pricecharting.com/search-products?type=prices&q=${encodeURIComponent([nameEn, set, cardNum].filter(Boolean).join(" "))}`;
-                    const pcGradedUrl = `https://www.pricecharting.com/search-products?type=prices&q=${encodeURIComponent(nameEn + " " + set + " PSA")}`;
+                    const cmUrl = result.cardmarket_url || `https://www.cardmarket.com/de/Pokemon/Products/Search?searchString=${encodeURIComponent([result.card_name, result.set_code].filter(Boolean).join(" "))}`;
+                    const pcRawUrl = result.pricecharting_url || `https://www.pricecharting.com/search-products?type=prices&q=${encodeURIComponent([nameEn, set, cardNum].filter(Boolean).join(" "))}`;
+                    const pcGradedUrl = result.pricecharting_psa_url || `https://www.pricecharting.com/search-products?type=prices&q=${encodeURIComponent(nameEn + " " + set + " PSA")}`;
                     const lnk = (bg, bd, c) => ({ display: "block", textAlign: "center", padding: "9px", background: bg, border: `1px solid ${bd}`, borderRadius: "3px", color: c, fontFamily: "'DM Mono', monospace", fontSize: "7px", letterSpacing: "3px", textDecoration: "none" });
                     return (
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
@@ -625,6 +723,8 @@ export default function PokemonGrader() {
                     );
                   })()}
                 </div>
+
+                {isDeveloper && <CorrectionPanel result={result} frontImg={frontImg} user={user} theme={theme} />}
 
                 <button onClick={() => { setFrontImg(null); setBackImg(null); setFrontB64(null); setBackB64(null); setResult(null); setSaved(false); }} style={{ marginTop: "28px", width: "100%", background: "transparent", border: `1px solid ${T.border}`, borderRadius: "4px", color: T.sub, fontFamily: "'DM Mono', monospace", fontSize: "7px", letterSpacing: "5px", padding: "12px", cursor: "pointer" }}>
                   — NEUE KARTE —
