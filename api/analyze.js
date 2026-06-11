@@ -20,11 +20,13 @@ export default async function handler(req, res) {
 
   const PROMPT = `Du bist ein Experte für Pokémon-Karten-Grading und kennst CardMarket sowie PriceCharting sehr gut. Analysiere diese Karte.
 
-WICHTIG — Identifikation ZUERST, anhand der Angaben am UNTEREN Kartenrand (nicht raten):
-- Lies dort die Copyright-Jahreszahl, die Kartennummer im Format X/Y (X = Position im Set, Y = Setgröße) und das Set-Symbol. Diese drei Angaben bestimmen das Set. Nenne card_number exakt wie aufgedruckt.
-- Die Jahreszahl grenzt die Ära ein. Achtung Verwechslungsgefahr beim Zusatz "ex": kleingeschriebenes "ex" + Jahr 2003–2006 → alte EX-Serie (EX Ruby & Sapphire bis EX Power Keepers); kleingeschriebenes "ex" + Jahr ab 2023 → Scarlet & Violet; großes "EX" + Jahr 2012–2016 → BW/XY-Ära. Ordne eine alte Karte NIEMALS einem aktuellen Set zu.
-- Sprache anhand der Schrift auf der Karte bestimmen: japanische Schriftzeichen → "Japanese", deutsche Texte → "German", usw. Japanische Karten haben eigene Set-Namen und teils andere Nummernformate — gib dann das japanische Set an.
-- Wenn das Set nicht eindeutig erkennbar ist: das anhand von Jahreszahl + Kartennummer wahrscheinlichste Set nennen, kein modernes Set als Standardannahme verwenden.
+WICHTIG — Identifikation ZUERST, streng in dieser Reihenfolge anhand der Angaben am UNTEREN Kartenrand (nicht raten):
+1. Copyright-Jahreszahl lesen (z.B. ©2004). Nur Sets, die in diesem Jahr oder kurz danach erschienen sind, kommen in Frage. Eine Karte mit altem Copyright stammt NIEMALS aus einem späteren Set (©2004 kann z.B. nicht "Pokémon Card 151" von 2023 sein).
+2. Kartennummer X/Y lesen (z.B. 012/052): Y ist die Setgröße. Bestimme das Set aus Schritt 1, das genau Y Karten hat. Das Set-Symbol dient als Bestätigung. Nenne card_number exakt wie aufgedruckt.
+3. X ist die Position im Set: Prüfe, ob Karte Nr. X in diesem Set wirklich das abgebildete Pokémon ist. Passt es nicht, passt das Set nicht — zurück zu Schritt 2.
+4. Sprache anhand der Schrift auf der Karte bestimmen: japanische Schriftzeichen → "Japanese", deutsche Texte → "German", usw. Japanische Karten haben eigene Sets mit eigenen Setgrößen — bei japanischen Karten das japanische Set nennen, kein westliches Äquivalent.
+Zusatzregel "ex"/"EX": kleingeschriebenes "ex" + Jahr 2003–2006 → alte EX-/PCG-Ära; kleingeschriebenes "ex" + Jahr ab 2023 → Scarlet & Violet; großes "EX" + Jahr 2012–2016 → BW/XY-Ära.
+Wenn nach diesen Schritten kein Set eindeutig passt: das wahrscheinlichste Set anhand Jahr + Setgröße nennen und im Zweifel die Setgröße im Set-Namen erwähnen — kein modernes Set als Standardannahme verwenden.
 
 Für die Links gilt:
 - CardMarket Singles-URL Format: https://www.cardmarket.com/de/Pokemon/Products/Singles/{Set-URL-Slug}/{Karten-URL-Slug}
