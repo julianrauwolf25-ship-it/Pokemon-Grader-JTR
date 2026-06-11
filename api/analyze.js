@@ -26,11 +26,12 @@ WICHTIG — Identifikation ZUERST, streng in dieser Reihenfolge anhand der Angab
 3. X ist die Position im Set: Prüfe, ob Karte Nr. X in diesem Set wirklich das abgebildete Pokémon ist. Passt es nicht, passt das Set nicht — zurück zu Schritt 2.
 4. Sprache anhand der Schrift auf der Karte bestimmen: japanische Schriftzeichen → "Japanese", deutsche Texte → "German", usw. Japanische Karten haben eigene Sets mit eigenen Setgrößen — bei japanischen Karten das japanische Set nennen, kein westliches Äquivalent.
 Zusatzregel "ex"/"EX": kleingeschriebenes "ex" + Jahr 2003–2006 → alte EX-/PCG-Ära; kleingeschriebenes "ex" + Jahr ab 2023 → Scarlet & Violet; großes "EX" + Jahr 2012–2016 → BW/XY-Ära.
-5. EHRLICHKEITS-REGEL: Wenn du das Set nach diesen Schritten NICHT sicher kennst (häufig bei japanischen Karten — du kennst nicht alle japanischen Setgrößen), dann RATE KEINEN Set-Namen. Setze "set" stattdessen auf "Unbekannt (©<Jahr>, <Y> Karten)". Nutze in diesem Fall für die Links Such-URLs mit englischem Kartennamen + aufgedruckter Kartennummer — die Nummernsuche findet die Karte zuverlässig:
+5. WEBSUCHE-REGEL: Wenn du das Set nach diesen Schritten NICHT sicher kennst (häufig bei japanischen Karten — du kennst nicht alle japanischen Setgrößen), dann RATE KEINEN Set-Namen, sondern nutze die Websuche: Suche nach "<englischer Kartenname> <X/Y>" (z.B. "charizard ex 012/052"). Die Treffer (PriceCharting, Bulbapedia, CardMarket) nennen das exakte Set — übernimm Set-Name und, wenn ein Treffer direkt zur Karte führt, dessen URL für die Links. Maximal 3 Suchen.
+6. Nur wenn auch die Websuche kein eindeutiges Ergebnis liefert: Setze "set" auf "Unbekannt (©<Jahr>, <Y> Karten)" und nutze für die Links Such-URLs mit englischem Kartennamen + aufgedruckter Kartennummer:
    - pricecharting_url: https://www.pricecharting.com/search-products?type=prices&q=<engl-name>+<X/Y> (z.B. ...q=charizard+ex+012/052)
    - pricecharting_psa_url: dieselbe Suche mit +psa am Ende
    - cardmarket_url: https://www.cardmarket.com/de/Pokemon/Products/Search?searchString=<engl-name>+<X/Y>
-Ein ehrliches "Unbekannt" ist IMMER besser als ein falscher Set-Name.
+Ein ehrliches "Unbekannt" ist IMMER besser als ein falscher Set-Name. WICHTIG: Deine finale Antwort ist NUR das JSON-Objekt — kein Text davor oder danach, keine Zitate im JSON.
 
 Für die Links gilt:
 - CardMarket Singles-URL Format: https://www.cardmarket.com/de/Pokemon/Products/Singles/{Set-URL-Slug}/{Karten-URL-Slug}
@@ -68,7 +69,8 @@ Wenn keine Pokémon-Karte erkannt: psa_grade=0.`;
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 1500,
+        max_tokens: 2500,
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
         messages: [{ role: "user", content }],
       }),
     });
@@ -80,11 +82,20 @@ Wenn keine Pokémon-Karte erkannt: psa_grade=0.`;
       return res.status(500).json({ error: `Anthropic error: ${data?.error?.message || response.status}` });
     }
 
-    const text = data.content?.find((b) => b.type === "text")?.text || "";
-    const clean = text.replace(/```json|```/g, "").trim();
+    // Nach einer Websuche besteht die Antwort aus mehreren Text-Blöcken
+    // (Suchankündigung, zitierte Sätze, JSON) — alle zusammenfügen und das
+    // JSON-Objekt zwischen erster { und letzter } herausschneiden.
+    const allText = (data.content || [])
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("")
+      .replace(/```json|```/g, "");
+    const start = allText.indexOf("{");
+    const end = allText.lastIndexOf("}");
+    const clean = start !== -1 && end > start ? allText.slice(start, end + 1).trim() : "";
 
     if (!clean) {
-      console.error("Empty response from Anthropic");
+      console.error("Empty response from Anthropic:", allText.slice(0, 200));
       return res.status(500).json({ error: "Empty response from AI" });
     }
 
