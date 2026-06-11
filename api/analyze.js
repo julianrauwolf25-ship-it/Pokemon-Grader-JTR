@@ -20,6 +20,12 @@ export default async function handler(req, res) {
 
   const PROMPT = `Du bist ein Experte für Pokémon-Karten-Grading und kennst CardMarket sowie PriceCharting sehr gut. Analysiere diese Karte.
 
+WICHTIG — Identifikation ZUERST, anhand der Angaben am UNTEREN Kartenrand (nicht raten):
+- Lies dort die Copyright-Jahreszahl, die Kartennummer im Format X/Y (X = Position im Set, Y = Setgröße) und das Set-Symbol. Diese drei Angaben bestimmen das Set. Nenne card_number exakt wie aufgedruckt.
+- Die Jahreszahl grenzt die Ära ein. Achtung Verwechslungsgefahr beim Zusatz "ex": kleingeschriebenes "ex" + Jahr 2003–2006 → alte EX-Serie (EX Ruby & Sapphire bis EX Power Keepers); kleingeschriebenes "ex" + Jahr ab 2023 → Scarlet & Violet; großes "EX" + Jahr 2012–2016 → BW/XY-Ära. Ordne eine alte Karte NIEMALS einem aktuellen Set zu.
+- Sprache anhand der Schrift auf der Karte bestimmen: japanische Schriftzeichen → "Japanese", deutsche Texte → "German", usw. Japanische Karten haben eigene Set-Namen und teils andere Nummernformate — gib dann das japanische Set an.
+- Wenn das Set nicht eindeutig erkennbar ist: das anhand von Jahreszahl + Kartennummer wahrscheinlichste Set nennen, kein modernes Set als Standardannahme verwenden.
+
 Für die Links gilt:
 - CardMarket Singles-URL Format: https://www.cardmarket.com/de/Pokemon/Products/Singles/{Set-URL-Slug}/{Karten-URL-Slug}
   Beispiele:

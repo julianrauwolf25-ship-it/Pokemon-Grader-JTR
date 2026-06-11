@@ -14,6 +14,12 @@ const PSA_GRADES = {
   1:  { label: "Poor", color: "#999999", glow: "#44444433", emoji: "💔" },
 };
 const CM_GRADES = ["Mint", "Near Mint", "Excellent", "Good", "Light Played", "Played", "Poor"];
+const AI_RATINGS = [
+  { value: 1, label: "PASSEND", color: "#90EE90" },
+  { value: 2, label: "OKAY", color: "#FFD700" },
+  { value: 3, label: "NICHT SO GUT", color: "#FFB347" },
+  { value: 4, label: "FALSCH", color: "#FF6B6B" },
+];
 const CM_COLORS = { "Mint": "#FFD700", "Near Mint": "#C8FFB0", "Excellent": "#90EE90", "Good": "#7EC8E3", "Light Played": "#FFB347", "Played": "#FF8C69", "Poor": "#FF6B6B" };
 
 // ── THEME ──────────────────────────────────────────────────────────────────
@@ -160,11 +166,12 @@ function PortfolioScreen({ user, theme, isDeveloper }) {
     setExportingCorr(true);
     const { data, error } = await supabase.from("corrections").select("*").order("created_at", { ascending: false });
     if (error) { setExportingCorr(false); return; }
-    const headers = ["Karte", "Set", "Nr.", "Sprache", "KI PSA", "KI CardMarket", "Korrigiert PSA", "Korrigiert CardMarket", "Grund", "Mängel", "Datum"];
+    const headers = ["Karte", "Set", "Nr.", "Sprache", "KI PSA", "KI CardMarket", "Korrigiert PSA", "Korrigiert CardMarket", "Einordnung", "Grund", "Mängel", "Datum"];
     const rows = (data || []).map(c => [
       c.card_name || "", c.set_name || "", c.card_number || "", c.language || "",
       c.ai_psa_grade ?? "", c.ai_cardmarket_grade || "",
       c.corrected_psa_grade ?? "", c.corrected_cardmarket_grade || "",
+      c.ai_rating ? `${c.ai_rating} - ${AI_RATINGS.find(r => r.value === c.ai_rating)?.label || ""}` : "",
       c.correction_reason || "", (c.key_issues || []).join("; "),
       new Date(c.created_at).toLocaleDateString("de-DE")
     ]);
@@ -357,6 +364,7 @@ function CorrectionPanel({ result, frontImg, user, theme }) {
   const aiPsa = result.psa_grade ? Math.min(10, Math.max(1, Math.round(result.psa_grade))) : 5;
   const [psa, setPsa] = useState(aiPsa);
   const [cm, setCm] = useState(CM_GRADES.includes(result.cardmarket_grade) ? result.cardmarket_grade : "Near Mint");
+  const [rating, setRating] = useState(null);
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -370,6 +378,7 @@ function CorrectionPanel({ result, frontImg, user, theme }) {
       language: result.language, image_data: frontImg,
       ai_psa_grade: result.psa_grade, ai_cardmarket_grade: result.cardmarket_grade,
       corrected_psa_grade: psa, corrected_cardmarket_grade: cm,
+      ai_rating: rating,
       correction_reason: reason || null,
       key_issues: (result.key_flaws || []).filter(Boolean),
     });
@@ -387,6 +396,16 @@ function CorrectionPanel({ result, frontImg, user, theme }) {
         <div style={{ textAlign: "center", padding: "12px", border: "1px solid #90EE9044", borderRadius: "3px", background: "#90EE9011", color: "#90EE90", fontSize: "9px", letterSpacing: "3px" }}>✓ KORREKTUR GESPEICHERT</div>
       ) : (
         <>
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ fontSize: "7px", letterSpacing: "2px", color: T.sub, marginBottom: "6px" }}>EINORDNUNG DER KI-BEWERTUNG</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "6px" }}>
+              {AI_RATINGS.map(({ value, label, color }) => (
+                <button key={value} onClick={() => setRating(value)} style={{ background: rating === value ? color + "1a" : "transparent", border: `1px solid ${rating === value ? color + "88" : T.border}`, borderRadius: "3px", color: rating === value ? color : T.sub, fontFamily: "'DM Mono', monospace", fontSize: "7px", letterSpacing: "1px", padding: "9px 2px", cursor: "pointer", transition: "all 0.15s" }}>
+                  {value} · {label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
             <div>
               <div style={{ fontSize: "7px", letterSpacing: "2px", color: T.sub, marginBottom: "6px" }}>KORRIGIERTE PSA-NOTE</div>

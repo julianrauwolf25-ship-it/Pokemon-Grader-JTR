@@ -54,6 +54,7 @@ create table public.corrections (
   ai_cardmarket_grade text,
   corrected_psa_grade numeric,
   corrected_cardmarket_grade text,
+  ai_rating smallint, -- Einordnung der KI-Bewertung: 1=passend, 2=okay, 3=nicht so gut, 4=falsch
   correction_reason text,
   key_issues text[],
   created_at timestamp with time zone default now()
