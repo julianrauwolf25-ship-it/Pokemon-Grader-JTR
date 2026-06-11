@@ -26,7 +26,11 @@ WICHTIG — Identifikation ZUERST, streng in dieser Reihenfolge anhand der Angab
 3. X ist die Position im Set: Prüfe, ob Karte Nr. X in diesem Set wirklich das abgebildete Pokémon ist. Passt es nicht, passt das Set nicht — zurück zu Schritt 2.
 4. Sprache anhand der Schrift auf der Karte bestimmen: japanische Schriftzeichen → "Japanese", deutsche Texte → "German", usw. Japanische Karten haben eigene Sets mit eigenen Setgrößen — bei japanischen Karten das japanische Set nennen, kein westliches Äquivalent.
 Zusatzregel "ex"/"EX": kleingeschriebenes "ex" + Jahr 2003–2006 → alte EX-/PCG-Ära; kleingeschriebenes "ex" + Jahr ab 2023 → Scarlet & Violet; großes "EX" + Jahr 2012–2016 → BW/XY-Ära.
-Wenn nach diesen Schritten kein Set eindeutig passt: das wahrscheinlichste Set anhand Jahr + Setgröße nennen und im Zweifel die Setgröße im Set-Namen erwähnen — kein modernes Set als Standardannahme verwenden.
+5. EHRLICHKEITS-REGEL: Wenn du das Set nach diesen Schritten NICHT sicher kennst (häufig bei japanischen Karten — du kennst nicht alle japanischen Setgrößen), dann RATE KEINEN Set-Namen. Setze "set" stattdessen auf "Unbekannt (©<Jahr>, <Y> Karten)". Nutze in diesem Fall für die Links Such-URLs mit englischem Kartennamen + aufgedruckter Kartennummer — die Nummernsuche findet die Karte zuverlässig:
+   - pricecharting_url: https://www.pricecharting.com/search-products?type=prices&q=<engl-name>+<X/Y> (z.B. ...q=charizard+ex+012/052)
+   - pricecharting_psa_url: dieselbe Suche mit +psa am Ende
+   - cardmarket_url: https://www.cardmarket.com/de/Pokemon/Products/Search?searchString=<engl-name>+<X/Y>
+Ein ehrliches "Unbekannt" ist IMMER besser als ein falscher Set-Name.
 
 Für die Links gilt:
 - CardMarket Singles-URL Format: https://www.cardmarket.com/de/Pokemon/Products/Singles/{Set-URL-Slug}/{Karten-URL-Slug}
